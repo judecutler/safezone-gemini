@@ -143981,7 +143981,7 @@
    ],
    "distance_m": 602.1,
    "walk_min": 10.035,
-   "computed_at": "2026-11-14T16:07:14.353311Z",
+   "computed_at": "2026-11-14T16:57:42.666846Z",
    "provenance": "recorded"
   },
   "shelters": {
@@ -144068,12 +144068,12 @@
     "hazard_check_failed": 0,
     "not_wheelchair_accessible": 1
    },
-   "fetched_at": "2026-11-14T16:07:14.353311Z",
+   "fetched_at": "2026-11-14T16:57:42.666846Z",
    "replay": true,
    "ranking": "Shelters that report room come first, then by walking time.",
    "provenance": "sample"
   },
-  "generated_at": "2026-11-14T16:07:14.353311Z"
+  "generated_at": "2026-11-14T16:57:42.666846Z"
  },
  "images": {
   "e90d4be77504": "/demo/living_room.jpg"
