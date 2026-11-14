@@ -1,0 +1,451 @@
+/* Landing: the map fills the top, a card floats over its lower edge. */
+
+.landing { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; background: var(--paper); }
+
+.landing-map {
+  position: relative; height: 60vh; height: 60dvh; min-height: 360px; overflow: hidden;
+  border-bottom: 1px solid var(--hair);
+}
+.landing-map > .nb { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.landing-map > .nb-stack { position: absolute; inset: -16px; }
+.nb-stack > svg, .nb-stack > .nb-flash, .nb-stack > .nb-hush { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.nb-stack > .nb-layer { background: none; overflow: visible; }
+.landing-map > .nb-debris { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+
+.landing-top {
+  position: absolute; left: 0; right: 0; top: 0;
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  padding: max(14px, env(safe-area-inset-top)) 16px 0;
+  pointer-events: none;
+}
+.landing-mark {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 12px 6px 8px; border-radius: 999px;
+  background: var(--card); border: 1px solid var(--hair); box-shadow: var(--shadow);
+  font: 800 1.0625rem/1 var(--f-cond); font-stretch: condensed; letter-spacing: 0.04em; text-transform: uppercase;
+}
+.landing-mark-icon { width: 20px; height: 20px; fill: none; stroke: var(--ink); stroke-width: 4; }
+
+.landing-phase {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 5px 12px 5px 6px; border-radius: 999px;
+  background: var(--card); border: 1px solid var(--hair); box-shadow: var(--shadow);
+  font: 700 0.75rem/1 var(--f-cond); font-stretch: condensed; text-transform: uppercase; letter-spacing: 0.08em;
+}
+.landing-phase-sign { width: 22px; height: 22px; }
+.landing-phase { min-width: 0; text-align: left; }
+.landing-mark { flex: none; }
+.landing-phase-words { line-height: 1.2; text-wrap: balance; }
+
+.landing-card {
+  position: relative; z-index: 2;
+  margin: -64px 12px 0; padding: 22px 20px 20px;
+  border-radius: 20px; gap: 14px;
+  width: auto; max-width: 560px; align-self: center;
+}
+.landing-card .display { font-size: clamp(2.125rem, 10.5vw, 3.25rem); }
+.landing-actions { display: grid; gap: 10px; }
+.landing-actions .btn-text { justify-self: center; }
+.landing-fact { font-size: 0.875rem; line-height: 1.45; color: var(--muted); border-left: 3px solid var(--accent); padding-left: 10px; max-width: 60ch; }
+.landing-fact a { color: var(--ink); text-underline-offset: 3px; }
+.landing { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+
+/* Short windows (a laptop with its browser chrome): a tighter card so the map keeps at least 40% of the height. */
+@media (max-height: 760px) {
+  .landing-map { height: 54vh; height: 54dvh; min-height: 260px; }
+  .landing-card { margin-top: -28px; padding: 16px 18px 14px; gap: 10px; }
+  .landing-card .display { font-size: clamp(1.75rem, 7.5vw, 2.25rem); }
+  .landing-card .lede { font-size: 0.9375rem; line-height: 1.45; }
+  .landing-fact { font-size: 0.8125rem; }
+  .landing-actions { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .landing-actions .btn, .landing-actions .btn-ghost { min-height: 48px; padding-inline: 10px; font-size: 1.0625rem; white-space: nowrap; }
+  .landing-actions .btn-text { grid-column: 1 / -1; }
+}
+
+/* The art: a tilted map in soft colour. Light-grey prisms with fine ink edges, light-green crowns, a blue-green sea. */
+
+.nb { background: #F1EEE7; }
+.nb-paper { fill: #F1EEE7; }
+.nb-hill { fill: #C9E3B0; opacity: 0.32; stroke: none; }
+.nb-sand { fill: #F1D9A4; }
+.nb-wrack { fill: none; stroke: #DDBF80; stroke-width: 0.8; stroke-dasharray: 5 3 1.5 3; }
+.nb-sea-base { fill: #A9D6DA; }
+.nb-sea { stroke: none; }
+.nb-scale { fill: #A9D6DA; stroke: #84BCC3; stroke-width: 0.6; }
+.nb-scale-ring { fill: none; }
+.nb-fscale { fill: #86C0C4; stroke: #5B979C; stroke-width: 0.6; }
+.nb-fscale-ring { fill: none; }
+.nb-shore { fill: none; stroke: #5E8F94; stroke-width: 0.8; }
+.nb-surf { fill: none; stroke: #FFFFFF; stroke-width: 1.1; stroke-dasharray: 4 3; }
+.nb-contour { fill: none; stroke: #A9C98E; stroke-width: 0.6; }
+.nb-contour-major { stroke: #8CB46F; stroke-width: 0.8; }
+.nb-park { fill: #CDE6B6; stroke: #9DC283; stroke-width: 0.6; }
+.nb-field { fill: #DCEFC8; }
+.nb-trail { fill: none; stroke: #9DC283; stroke-width: 0.8; stroke-dasharray: 2 2; }
+.nb-casing, .nb-road { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.nb-casing { stroke: #A6A299; }
+.nb-road { stroke: #D9D6CF; }
+.nb-road.nb-main { stroke: #CFCBC3; }
+.nb-casing.nb-main { stroke: #97928A; }
+.nb-casing-end { fill: #A6A299; }
+.nb-road-end { fill: #D9D6CF; }
+.nb-cast { fill: rgba(80, 70, 52, 0.16); }
+.nb-house-wall, .nb-house-roof, .nb-home-wall, .nb-home-roof { stroke: #36322B; stroke-width: 0.45; stroke-linejoin: round; }
+.nb-house-wall { fill: #CFCBC3; }
+.nb-house-wall-dark { fill: #AEA89D; }
+.nb-house-roof { fill: #E7E5E0; }
+.nb-house-roof-dark { fill: #CBC7BF; }
+.nb-block.nb-house-wall { fill: #C7C4BE; }
+.nb-block.nb-house-wall-dark { fill: #A39E95; }
+.nb-home-wall, .nb-home-roof { stroke-width: 0.8; stroke: var(--ink); }
+.nb-home-wall { fill: #F2B71C; }
+.nb-home-wall-dark { fill: #D99A00; }
+.nb-home-roof { fill: var(--accent); }
+.nb-home-roof-dark { fill: #EDB000; }
+.nb-tree-shadow { fill: rgba(60, 86, 40, 0.18); }
+.nb-tree-0 { fill: #BCE39A; }
+.nb-tree-1 { fill: #A3D67E; }
+.nb-pole { fill: none; stroke: #5B554B; stroke-width: 0.7; stroke-linecap: round; }
+.nb-wire { fill: none; stroke: #5B554B; stroke-width: 0.3; opacity: 0.85; }
+.nb-post { stroke: var(--ink); stroke-width: 0.9; }
+.nb-marker { fill: #FFFCF4; stroke: #36322B; stroke-width: 0.9; }
+.nb-ripple { fill: none; stroke: #36322B; stroke-width: 0.8; opacity: 0; transform-box: fill-box; transform-origin: center; }
+.nb-label {
+  font: 700 7px var(--f-cond); font-stretch: condensed; letter-spacing: 0.32em; fill: #5F5A4F;
+  paint-order: stroke; stroke: #F1EEE7; stroke-width: 2.4px; stroke-linejoin: round;
+}
+.nb-label-sea { fill: #3F7378; stroke: #A9D6DA; }
+.nb-label-small { font-size: 5.5px; letter-spacing: 0.24em; fill: var(--sev-3-text); }
+.nb-label-strong { font-size: 7.5px; fill: var(--ink); letter-spacing: 0.18em; }
+.nb-hazard { fill: none; stroke: var(--sev-3); stroke-width: 1.2; stroke-dasharray: 4 2.5; }
+.nb-route-case { fill: none; stroke: var(--ink); stroke-width: 4.4; stroke-linecap: round; stroke-linejoin: round; }
+.nb-route { fill: none; stroke: var(--accent); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 5 3.5; }
+.nb-home-ring { fill: rgba(255, 198, 41, 0.32); stroke: var(--ink); stroke-width: 1; }
+.nb-flash { background: #1E1A14; opacity: 0; pointer-events: none; }
+/* The eerie calm before the wave: a cool grey wash dims and greys the map; opacity only. */
+.nb-hush { background: rgba(107, 113, 118, 0.26); opacity: 0; pointer-events: none; }
+.nb-wet { fill: #D2B47A; }
+.nb-wet-line { fill: none; stroke: #BE9E63; stroke-width: 0.6; stroke-dasharray: 6 4; }
+.nb-rock { fill: #8F877A; stroke: #5B554B; stroke-width: 0.4; }
+
+/* The flood is drawn twice: solid water under the buildings, so houses stand in it, and a thin wash over them. */
+.nb-flood { opacity: 0; transform: translate(-215px, -27.95px); }
+.nb-flood-base { fill: #8DC3C6; }
+.nb-flood-water { stroke: none; opacity: 0.32; }
+.nb-edge { fill: none; stroke-width: 1.4; stroke-linecap: round; }
+.nb-edge-1 { stroke: var(--sev-1); }
+.nb-edge-3 { stroke: var(--sev-3); }
+.nb-crest { fill: none; stroke: #2F5F62; stroke-width: 1.1; stroke-linecap: round; }
+
+/* The loop: 21 s, the times in TIMELINE and SHOCKS in neighborhood.js (the debris canvas and the pill use them).
+   Calm 0-3 s; small tremor 3-3.6 s; calm; tremor 5.1-6.1 s; calm; strong earthquake 7.1-10.7 s with jolts at 7.1, 8.3
+   and 9.5 s; eerie calm 10.7-13.2 s, dimmed while the sea draws back off the beach; the wave floods 13.2-16.5 s and
+   recedes to 18.6 s as the colour comes back; calm to 21 s. */
+
+/* The shake moves the whole layer stack and the jitter moves single band layers: compositor work, no repaint. */
+.landing-map > .nb-stack { animation: nb-quake 21s ease-in-out infinite; }
+.nb-stack .nb-band-0 { animation: nb-jitter-a 21s linear infinite; }
+.nb-stack .nb-band-1 { animation: nb-jitter-b 21s linear infinite; }
+.nb-stack .nb-band-2 { animation: nb-jitter-c 21s linear infinite; }
+.nb-stack .nb-band-3 { animation: nb-jitter-a 21s linear -0.3s infinite reverse; }
+.nb-stack .nb-band-4 { animation: nb-jitter-b 21s linear 0.2s infinite; }
+.nb-stack .nb-band-5 { animation: nb-jitter-c 21s linear -0.15s infinite reverse; }
+.nb-stack .nb-wire-layer { animation: nb-swing 21s ease-in-out infinite; }
+.nb-stack .nb-flash { animation: nb-flash 21s linear infinite; }
+.nb-stack .nb-ripple { animation: nb-ripple 21s ease-out infinite; }
+.nb-stack .nb-flood { animation: nb-flood 21s infinite; }
+.nb-stack .nb-route { animation: nb-march 1.6s linear infinite; }
+.nb-stack .nb-home-ring { animation: nb-breathe 3.5s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.nb-stack .nb-sea-layer { animation: nb-ebb 21s linear infinite; }
+.nb-stack .nb-hush { animation: nb-hush 21s linear infinite; }
+.nb-stack .nb-label-sea { animation: nb-sea-label 21s linear infinite; }
+.landing-map:has(.nb-animate) .landing-phase { animation: nb-pill 21s linear infinite; }
+
+/* Two small tremors, then three jolts that each snap hard and ring down, with a low rumble between them: not a steady buzz. */
+@keyframes nb-quake {
+  0% { transform: translate(0, 0) rotate(0); }
+  14.286% { transform: translate(0px, 0px) rotate(0deg); }
+  14.619% { transform: translate(1.8px, -0.8px) rotate(0deg); }
+  15% { transform: translate(-1.6px, 1px) rotate(0deg); }
+  15.429% { transform: translate(1.4px, -0.5px) rotate(0deg); }
+  15.857% { transform: translate(-1.1px, 0.7px) rotate(0deg); }
+  16.286% { transform: translate(0.8px, -0.4px) rotate(0deg); }
+  16.714% { transform: translate(-0.4px, 0.2px) rotate(0deg); }
+  17.143% { transform: translate(0px, 0px) rotate(0deg); }
+  24.286% { transform: translate(0px, 0px) rotate(0deg); }
+  24.619% { transform: translate(-3.6px, 1.8px) rotate(-0.15deg); }
+  25% { transform: translate(3.4px, -2.2px) rotate(0.14deg); }
+  25.429% { transform: translate(-3px, 1.6px) rotate(-0.1deg); }
+  25.905% { transform: translate(2.6px, -1.3px) rotate(0.06deg); }
+  26.429% { transform: translate(-2px, 1.1px) rotate(0deg); }
+  27% { transform: translate(1.5px, -0.8px) rotate(0deg); }
+  27.619% { transform: translate(-1px, 0.6px) rotate(0deg); }
+  28.286% { transform: translate(0.6px, -0.3px) rotate(0deg); }
+  29.048% { transform: translate(0px, 0px) rotate(0deg); }
+  33.738% { transform: translate(0, 0) rotate(0); }
+  34.024% { transform: translate(-7px, 3px) rotate(-0.5deg); }
+  34.381% { transform: translate(6px, -4px) rotate(0.45deg); }
+  34.81% { transform: translate(-4px, 2.5px) rotate(-0.2deg); }
+  35.31% { transform: translate(3px, -1.5px) rotate(0.1deg); }
+  35.952% { transform: translate(-1.6px, 1px) rotate(0); }
+  36.738% { transform: translate(1.1px, -0.6px); }
+  37.595% { transform: translate(-1.3px, 0.9px); }
+  38.381% { transform: translate(0.8px, 0.4px); }
+  39.095% { transform: translate(-0.5px, -0.6px); }
+  39.452% { transform: translate(0, 0) rotate(0); }
+  39.667% { transform: translate(9px, -3px) rotate(0.7deg); }
+  40.024% { transform: translate(-8px, 4.5px) rotate(-0.6deg); }
+  40.452% { transform: translate(6px, -3.5px) rotate(0.35deg); }
+  40.952% { transform: translate(-4px, 2.5px) rotate(-0.2deg); }
+  41.524% { transform: translate(2.8px, -1.2px) rotate(0.1deg); }
+  42.167% { transform: translate(-1.8px, 1.3px) rotate(0); }
+  42.881% { transform: translate(1.3px, -0.9px); }
+  43.595% { transform: translate(-1.1px, 0.5px); }
+  44.31% { transform: translate(0.9px, 0.7px); }
+  44.952% { transform: translate(-0.4px, -0.4px); }
+  45.167% { transform: translate(0, 0) rotate(0); }
+  45.381% { transform: translate(4.5px, 2.5px) rotate(0.3deg); }
+  45.738% { transform: translate(-4px, -2px) rotate(-0.25deg); }
+  46.167% { transform: translate(2.4px, 1.2px) rotate(0.1deg); }
+  46.81% { transform: translate(-1.4px, -0.7px) rotate(0); }
+  47.738% { transform: translate(0.9px, 0.5px); }
+  48.81% { transform: translate(-0.5px, 0.3px); }
+  49.881% { transform: translate(0.3px, -0.2px); }
+  50.952% { transform: translate(0, 0) rotate(0); }
+  100% { transform: translate(0, 0) rotate(0); }
+}
+@keyframes nb-jitter-a {
+  0% { transform: translate(0, 0); }
+  24.286% { transform: translate(0px, 0px); }
+  24.857% { transform: translate(0.7px, -0.5px); }
+  25.714% { transform: translate(-0.6px, 0.5px); }
+  26.905% { transform: translate(0.3px, 0.2px); }
+  28.095% { transform: translate(0px, 0px); }
+  33.81% { transform: translate(0, 0); }
+  34.238% { transform: translate(1.6px, -1.1px); }
+  34.952% { transform: translate(-1.3px, 1.2px); }
+  35.952% { transform: translate(0.7px, 0.5px); }
+  37.381% { transform: translate(-0.4px, -0.3px); }
+  39.167% { transform: translate(0, 0); }
+  39.881% { transform: translate(1.6px, -1.1px); }
+  40.667% { transform: translate(-1.3px, 1.2px); }
+  41.667% { transform: translate(0.7px, 0.5px); }
+  43.452% { transform: translate(-0.4px, -0.3px); }
+  44.881% { transform: translate(0, 0); }
+  45.595% { transform: translate(1.6px, -1.1px); }
+  46.381% { transform: translate(-1.3px, 1.2px); }
+  47.381% { transform: translate(0.7px, 0.5px); }
+  48.81% { transform: translate(-0.4px, -0.3px); }
+  50.952% { transform: translate(0, 0); }
+  100% { transform: translate(0, 0); }
+}
+@keyframes nb-jitter-b {
+  0% { transform: translate(0, 0); }
+  24.286% { transform: translate(0px, 0px); }
+  25.048% { transform: translate(-0.6px, -0.4px); }
+  26% { transform: translate(0.5px, 0.6px); }
+  27.143% { transform: translate(-0.3px, 0.2px); }
+  28.333% { transform: translate(0px, 0px); }
+  33.881% { transform: translate(0, 0); }
+  34.452% { transform: translate(-1.5px, -0.8px); }
+  35.238% { transform: translate(1.2px, 1.3px); }
+  36.381% { transform: translate(-0.6px, 0.4px); }
+  38.095% { transform: translate(0.3px, -0.3px); }
+  39.381% { transform: translate(0, 0); }
+  40.167% { transform: translate(-1.5px, -0.8px); }
+  40.952% { transform: translate(1.2px, 1.3px); }
+  42.238% { transform: translate(-0.6px, 0.4px); }
+  43.81% { transform: translate(0.3px, -0.3px); }
+  45.095% { transform: translate(0, 0); }
+  45.881% { transform: translate(-1.5px, -0.8px); }
+  46.667% { transform: translate(1.2px, 1.3px); }
+  47.952% { transform: translate(-0.6px, 0.4px); }
+  49.524% { transform: translate(0.3px, -0.3px); }
+  50.952% { transform: translate(0, 0); }
+  100% { transform: translate(0, 0); }
+}
+@keyframes nb-jitter-c {
+  0% { transform: translate(0, 0); }
+  24.286% { transform: translate(0px, 0px); }
+  24.762% { transform: translate(0.4px, 0.7px); }
+  25.619% { transform: translate(-0.6px, -0.4px); }
+  26.667% { transform: translate(0.3px, -0.3px); }
+  28.095% { transform: translate(0px, 0px); }
+  33.952% { transform: translate(0, 0); }
+  34.167% { transform: translate(0.9px, 1.5px); }
+  34.667% { transform: translate(-1.4px, -0.9px); }
+  35.595% { transform: translate(0.8px, -0.6px); }
+  37.024% { transform: translate(-0.3px, 0.4px); }
+  39.238% { transform: translate(0, 0); }
+  39.738% { transform: translate(0.9px, 1.5px); }
+  40.31% { transform: translate(-1.4px, -0.9px); }
+  41.31% { transform: translate(0.8px, -0.6px); }
+  42.738% { transform: translate(-0.3px, 0.4px); }
+  44.952% { transform: translate(0, 0); }
+  45.452% { transform: translate(0.9px, 1.5px); }
+  46.024% { transform: translate(-1.4px, -0.9px); }
+  47.024% { transform: translate(0.8px, -0.6px); }
+  48.452% { transform: translate(-0.3px, 0.4px); }
+  50.952% { transform: translate(0, 0); }
+  100% { transform: translate(0, 0); }
+}
+@keyframes nb-swing {
+  0% { transform: translate(0, 0); }
+  14.286% { transform: translate(0px, 0px); }
+  14.857% { transform: translate(-0.7px, 0.15px); }
+  16% { transform: translate(0.5px, -0.1px); }
+  17.619% { transform: translate(0px, 0px); }
+  24.286% { transform: translate(0px, 0px); }
+  25.238% { transform: translate(-1.6px, 0.35px); }
+  26.667% { transform: translate(1.2px, -0.25px); }
+  28.095% { transform: translate(-0.7px, 0.1px); }
+  30% { transform: translate(0.3px, 0px); }
+  31.429% { transform: translate(0px, 0px); }
+  33.81% { transform: translate(0, 0); }
+  34.524% { transform: translate(-2.6px, 0.6px); }
+  35.667% { transform: translate(2.2px, -0.4px); }
+  36.952% { transform: translate(-1.6px, 0.3px); }
+  38.381% { transform: translate(1px, 0); }
+  39.81% { transform: translate(3.2px, -0.6px); }
+  40.952% { transform: translate(-2.8px, 0.5px); }
+  42.238% { transform: translate(2px, -0.3px); }
+  43.667% { transform: translate(-1.3px, 0.2px); }
+  45.524% { transform: translate(-2px, 0.4px); }
+  46.81% { transform: translate(1.5px, -0.2px); }
+  48.381% { transform: translate(-0.9px, 0); }
+  50.238% { transform: translate(0.4px, 0); }
+  52.381% { transform: translate(0, 0); }
+  100% { transform: translate(0, 0); }
+}
+@keyframes nb-flash {
+  0% { opacity: 0; }
+  33.774% { opacity: 0; }
+  33.917% { opacity: 0.34; }
+  35.381% { opacity: 0; }
+  39.595% { opacity: 0; }
+  39.738% { opacity: 0.16; }
+  40.667% { opacity: 0; }
+  100% { opacity: 0; }
+}
+@keyframes nb-ripple {
+  0% { opacity: 0; transform: scale(1); }
+  24.286% { opacity: 0; transform: scale(1); }
+  24.476% { opacity: 0.45; transform: scale(1); }
+  28.571% { opacity: 0; transform: scale(2.4); }
+  33.738% { opacity: 0; transform: scale(1); }
+  33.881% { opacity: 0.9; transform: scale(1); }
+  38.81% { opacity: 0; transform: scale(3.4); }
+  39.595% { opacity: 0.9; transform: scale(1); }
+  44.524% { opacity: 0; transform: scale(3.4); }
+  45.31% { opacity: 0.7; transform: scale(1); }
+  50.238% { opacity: 0; transform: scale(3); }
+  100% { opacity: 0; transform: scale(1); }
+}
+@keyframes nb-flood {
+  0% { opacity: 0; transform: translate(-215px, -27.95px); animation-timing-function: ease-out; }
+  62.857% { opacity: 0; transform: translate(-215px, -27.95px); animation-timing-function: ease-out; }
+  64.143% { opacity: 1; transform: translate(-190px, -24.7px); animation-timing-function: cubic-bezier(0.3, 0.1, 0.25, 1); }
+  75.357% { opacity: 1; transform: translateX(0); }
+  78.571% { opacity: 1; transform: translate(-3px, -0.39px); animation-timing-function: ease-in-out; }
+  87.5% { opacity: 1; transform: translate(-205px, -26.65px); }
+  88.571% { opacity: 0; transform: translate(-215px, -27.95px); }
+  100% { opacity: 0; transform: translate(-215px, -27.95px); }
+}
+@keyframes nb-ebb {
+  0%, 51.905% { transform: translate(0, 0); animation-timing-function: ease-in-out; }
+  60%, 61.667% { transform: translate(-30px, -3.9px); animation-timing-function: ease-in; }
+  63.571%, 100% { transform: translate(0, 0); }
+}
+@keyframes nb-hush {
+  0%, 51.19% { opacity: 0; }
+  55.238%, 78.571% { opacity: 1; }
+  88.571%, 100% { opacity: 0; }
+}
+/* The ocean label would sit on the uncovered sand, so it fades while the sea is drawn back and under the flood. */
+@keyframes nb-sea-label {
+  0%, 51.905% { opacity: 1; }
+  54.286%, 88.571% { opacity: 0; }
+  91.429%, 100% { opacity: 1; }
+}
+@keyframes nb-march { to { stroke-dashoffset: -17; } }
+@keyframes nb-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.18); } }
+@keyframes nb-pill {
+  0% { transform: translate(0, 0); }
+  24.286% { transform: translate(0px, 0px); }
+  24.667% { transform: translate(-1px, 0.5px); }
+  25.238% { transform: translate(1px, -0.5px); }
+  25.952% { transform: translate(0px, 0px); }
+  33.81% { transform: translate(0, 0); }
+  34.095% { transform: translate(-2px, 1px); }
+  34.524% { transform: translate(2px, -1px); }
+  35.095% { transform: translate(-1px, 0); }
+  35.667% { transform: translate(0, 0); }
+  36.667% { transform: translate(0, 0); }
+  39.381% { transform: translate(0, 0); }
+  39.81% { transform: translate(-2px, 1px); }
+  40.238% { transform: translate(2px, -1px); }
+  40.81% { transform: translate(-1px, 0); }
+  41.381% { transform: translate(0, 0); }
+  100% { transform: translate(0, 0); }
+}
+.landing-phase-sign { opacity: 0.35; flex: none; }
+.landing-phase[data-level="1"] .landing-phase-sign { opacity: 0.65; }
+.landing-phase[data-level="2"] .landing-phase-sign { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .nb-flood { opacity: 0 !important; }
+  .landing-phase { display: none; }
+}
+
+/* Phones: both buttons, including "Run the demo", fit on the first screen without scrolling. */
+@media (max-width: 520px) and (min-height: 761px) {
+  .landing-map { height: 46vh; height: 46dvh; }
+  .landing-card { padding: 18px 16px 16px; gap: 12px; }
+  .landing-card .display { font-size: clamp(1.875rem, 8.6vw, 2.5rem); }
+  .landing-card .lede { font-size: 1rem; line-height: 1.45; }
+  .landing-actions { grid-template-columns: 1fr 1fr; }
+  .landing-actions .btn-text { grid-column: 1 / -1; }
+  .landing-actions .btn, .landing-actions .btn-ghost { min-height: 52px; padding-inline: 8px; font-size: 1.0625rem; white-space: nowrap; }
+}
+@media (max-width: 520px) {
+  .landing-top { gap: 8px; }
+  .landing-phase { gap: 6px; padding: 5px 10px 5px 5px; letter-spacing: 0.03em; }
+}
+
+.landing-built { font-size: 0.75rem; line-height: 1.4; color: var(--muted); text-align: center; text-wrap: balance; }
+.landing-built strong { color: var(--ink); font-weight: 700; }
+
+/* Laptops and desktops: the animated map fills the left side at full height, the card sits centred on the right.
+   base.css lets the landing out of the phone column and hides the static backdrop on this screen. */
+@media (min-width: 1024px) {
+  .landing {
+    display: grid; grid-template-columns: minmax(0, 1fr) clamp(440px, 38vw, 560px);
+    height: 100vh; height: 100dvh; min-height: 600px; padding: 0;
+  }
+  .landing-map { height: auto; min-height: 0; border-bottom: 0; border-right: 1px solid var(--hair); }
+  .landing-top { padding: 20px 24px 0; }
+  .landing-card {
+    align-self: center; margin: 0; width: auto; max-width: none;
+    padding: 0 clamp(28px, 3.4vw, 48px); gap: 16px;
+    background: none; border: 0; box-shadow: none; border-radius: 0;
+  }
+  .landing-card .display { font-size: clamp(2.5rem, 3.4vw, 3.25rem); }
+  .landing-card .lede { font-size: 1.0625rem; line-height: 1.5; }
+  .landing-fact { font-size: 0.875rem; }
+  .landing-actions { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .landing-actions .btn-text { grid-column: 1 / -1; }
+  .landing-actions .btn, .landing-actions .btn-ghost { min-height: 52px; padding-inline: 12px; white-space: nowrap; }
+  .landing-built { text-align: left; text-wrap: pretty; }
+}
+@media (min-width: 1024px) and (max-height: 800px) {
+  .landing-card { gap: 12px; }
+  .landing-card .display { font-size: clamp(2.125rem, 3vw, 2.75rem); }
+  .landing-card .lede { font-size: 1rem; line-height: 1.45; }
+  .landing-fact { font-size: 0.8125rem; }
+  .landing-actions .btn, .landing-actions .btn-ghost { min-height: 48px; }
+}
+
+/* Small phones (375x667): a shorter map so "How it works" stays on the first screen too. */
+@media (max-width: 520px) and (max-height: 760px) {
+  .landing-map { height: 38vh; height: 38dvh; min-height: 240px; }
+}

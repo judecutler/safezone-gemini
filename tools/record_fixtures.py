@@ -1,0 +1,146 @@
+"""Record real responses for the demo household, replacing the SAMPLE fixtures.
+
+Run on a machine with internet access and GEMINI_API_KEY in .env:
+    python tools/record_fixtures.py
+It lists the Gemini models your key can call, runs every pipeline live while
+saving each exchange to fixtures/demo, then rebuilds demo/plan.json from them.
+FEMA's open-shelter layer is empty on quiet days; pass --keep-sample-shelters
+to keep the sample shelter data (it stays labelled SAMPLE in the app).
+
+    python tools/record_fixtures.py --gobag <photo>
+records only a real go-bag check of that photo: it adds the exchange to
+fixtures/demo and writes demo/gobag.jpg and demo/gobag.json for the demo.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import shutil
+import sys
+import time
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Callable
+from urllib.parse import urlsplit
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from safezone.building import osm  # noqa: E402
+from safezone.app import FEMA_HOST, HostSplit  # noqa: E402
+from safezone.config import load_settings  # noqa: E402
+from safezone.gemini import GeminiClient  # noqa: E402
+from safezone.room.pipeline import prepare_image  # noqa: E402
+from safezone.transport import (LiveTransport, RecordingTransport, ReplayTransport, Request,  # noqa: E402
+                                Response, Transport)
+from tools.demo import FIXTURES, GOBAG_PHOTO, ROOT, SampleResponder, build_plan, write_gobag, write_plan  # noqa: E402
+
+
+@dataclass
+class FailureLog:
+    """Passes requests through, prints one line per call, and remembers every one that failed."""
+    inner: Transport
+    failures: list[str] = field(default_factory=list)
+    out: Callable[[str], None] = print
+
+    def send(self, request: Request) -> Response:
+        host = urlsplit(request.url).hostname or request.url
+        self.out(f"  ... {request.method} {host} (waits up to {request.timeout_s:.0f}s)")
+        started = time.monotonic()
+        resp = self.inner.send(request)
+        took = time.monotonic() - started
+        self.out(f"  {'ok' if resp.status < 400 else 'ERR'} {resp.status} in {took:.0f}s  {host}")
+        if resp.status >= 400:
+            self.failures.append(f"{resp.status} after {took:.0f}s  {request.method} {request.url}\n      {resp.text[:300]!r}")
+        return resp
+
+
+@dataclass
+class SampleWhenDown:
+    """FEMA's open-shelter layer is often empty or unreachable; fall back to labelled SAMPLE shelters."""
+    live: Transport
+    sample: Transport
+
+    def send(self, request: Request) -> Response:
+        resp = self.live.send(request)
+        if resp.status >= 400:
+            print("FEMA shelter layer failed; using SAMPLE shelters (labelled in the app).")
+            return self.sample.send(request)
+        return resp
+
+
+def merge_files(target: Path, source: Path) -> None:
+    """Copy new recordings over same-key fixtures and keep every other file.
+
+    fixtures/demo also holds the Japan recording, the go-bag check and labelled samples; a US rerun must not delete
+    them. Files are copied one by one because renaming folders fails on locked Windows folders.
+    """
+    target.mkdir(parents=True, exist_ok=True)
+    for new in source.glob("*.json"):
+        shutil.copy2(new, target / new.name)
+
+
+def record_gobag(photo: Path, log: FailureLog) -> None:
+    jpeg = prepare_image(photo.read_bytes())
+    staging = ROOT / "fixtures" / f"demo.recording-{datetime.now():%Y%m%d-%H%M%S}"
+    try:
+        write_gobag(RecordingTransport(log, staging, provenance="recorded"), jpeg)
+    finally:
+        print(f"\n{len(log.failures)} failed calls" + (":" if log.failures else "."))
+        for line in log.failures:
+            print("  " + line)
+    FIXTURES.mkdir(parents=True, exist_ok=True)
+    for new in staging.glob("*.json"):
+        shutil.copy2(new, FIXTURES / new.name)
+    shutil.rmtree(staging, ignore_errors=True)
+    GOBAG_PHOTO.write_bytes(jpeg)
+    print(f"wrote {GOBAG_PHOTO.relative_to(ROOT)} (location data stripped)")
+
+
+def main() -> None:
+    osm.OVERPASS_BUDGET_S = 180.0  # nobody is waiting on a screen; give every Overpass instance its full wait
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--keep-sample-shelters", action="store_true")
+    parser.add_argument("--gobag", type=Path, metavar="PHOTO", help="record only a go-bag check of this photo")
+    args = parser.parse_args()
+    settings = load_settings()
+    if not settings.gemini_api_key:
+        raise SystemExit("GEMINI_API_KEY is not set (put it in .env)")
+    log = FailureLog(LiveTransport())
+    if args.gobag:
+        if not args.gobag.is_file():
+            raise SystemExit(f"no photo at {args.gobag}")
+        print("Checking the go bag with Gemini.")
+        record_gobag(args.gobag, log)
+        return
+    live = log
+    models = GeminiClient(live, settings).list_models()
+    (ROOT / "fixtures").mkdir(exist_ok=True)
+    (ROOT / "fixtures" / "models.json").write_text(json.dumps(models, indent=1))
+    print("models your key can call:", ", ".join(models))
+    print("Recording the demo household. This takes a few minutes.")
+    if settings.vision_model not in models:
+        raise SystemExit(f"{settings.vision_model} is not in your model list; set GEMINI_MODEL in .env")
+
+    # A fresh folder per run: on Windows, OneDrive or an editor can hold an old one locked.
+    staging = ROOT / "fixtures" / f"demo.recording-{datetime.now():%Y%m%d-%H%M%S}"
+    recorder = RecordingTransport(live, staging, provenance="recorded")
+    sample_shelters = RecordingTransport(SampleResponder(), staging, "sample")
+    fema = sample_shelters if args.keep_sample_shelters else SampleWhenDown(recorder, sample_shelters)
+    transport = HostSplit(FEMA_HOST, fema, recorder)
+    try:
+        payload = build_plan(transport, shelter_replay=True, now=datetime.now(timezone.utc))
+    finally:
+        print(f"\n{len(log.failures)} failed calls" + (":" if log.failures else "."))
+        for line in log.failures:
+            print("  " + line)
+    notes = payload["plan"]["rooms"][0]["notes"]
+    if notes:
+        print("room notes:", *notes, sep="\n  ")
+    merge_files(FIXTURES, staging)
+    shutil.rmtree(staging, ignore_errors=True)
+    write_plan(build_plan(ReplayTransport(FIXTURES), True, datetime.now(timezone.utc)))
+
+
+if __name__ == "__main__":
+    main()

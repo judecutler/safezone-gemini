@@ -1,0 +1,169 @@
+"""Build the demo household's plan by running every pipeline through one transport.
+
+`python tools/demo.py samples` regenerates the hand-authored SAMPLE fixtures and
+rebuilds demo/plan.json from them. `python tools/demo.py replay` rebuilds the plan
+from whatever fixtures/demo holds (after tools/record_fixtures.py, real ones).
+`python tools/demo.py fill-samples` keeps every real recording, replaces FEMA's
+answer with SAMPLE shelters (the live layer is empty on quiet days), and records
+SAMPLE answers only for requests the recording lacks, such as the outside address.
+`python tools/demo.py gobag-sample` writes demo/gobag.json from the SAMPLE go-bag answer.
+`python tools/demo.py jp` writes demo/plan_jp.json, the Kamakura household built from the Japan SAMPLE answers.
+`python tools/demo.py jp-replay` rebuilds it from the recorded Japan answers in fixtures/demo.
+It has no room scan: there is no Kamakura room photo, and borrowing the Bay Area room would mislabel it.
+Overpass is never filled: a sample storeys count on the real building would be invented.
+"""
+from __future__ import annotations
+
+import json
+import shutil
+import sys
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path
+from urllib.parse import urlsplit
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+
+from safezone.building.cgs import in_hazard_area  # noqa: E402
+from safezone.building.osm import OVERPASS_URL  # noqa: E402
+from safezone.building.pipeline import build_profile  # noqa: E402
+from safezone.config import load_settings  # noqa: E402
+from safezone.gobag import check_gobag  # noqa: E402
+from safezone.gemini import GeminiClient  # noqa: E402
+from safezone.room.pipeline import prepare_image, scan_room  # noqa: E402
+from safezone.room.segment import MASKS_NOT_DECODED  # noqa: E402
+from safezone.route.pipeline import plan_route  # noqa: E402
+from safezone.shapes import DirectionOnly, Household, Plan, WalkingRoute  # noqa: E402
+from safezone.shelter.pipeline import find_shelters  # noqa: E402
+from safezone.app import FEMA_HOST, HostSplit  # noqa: E402
+from safezone import regions  # noqa: E402
+from safezone.transport import (NETWORK_FAILURE, RecordingTransport, ReplayTransport, Request,  # noqa: E402
+                                Response, Transport)
+from tools.samples import building, gobag, japan, room, route, shelter  # noqa: E402
+from tools.samples.geo import DEMO_ADDRESS, OUTSIDE_ADDRESS  # noqa: E402
+
+FIXTURES = ROOT / "fixtures" / "demo"
+PHOTO = ROOT / "demo" / "living_room.jpg"
+PLAN = ROOT / "demo" / "plan.json"
+GOBAG = ROOT / "demo" / "gobag.json"
+GOBAG_PHOTO = ROOT / "demo" / "gobag.jpg"
+PLAN_JP = ROOT / "demo" / "plan_jp.json"
+JP_DEMO_HOUSEHOLD = Household(children=True, wheelchair=False, medical=False, pets=True)
+"""No wheelchair: GSI lists no access data, so a wheelchair household would correctly get no sites at all."""
+JP_NO_ROOM_NOTE = ("Sample household: no room was scanned for this address, so the room section is empty. "
+                   "The room scan demo is the Bay Area household.")
+DEMO_HOUSEHOLD = Household(children=True, wheelchair=True, medical=False, pets=True)
+DEMO_ROOM_NAME = "Bedroom"
+
+
+@dataclass(frozen=True)
+class SampleResponder:
+    def send(self, request: Request) -> Response:
+        for area in (gobag, room, building, route, shelter):
+            answer = area.respond(request)
+            if answer is not None:
+                return answer
+        return Response(599, f"no sample for {request.url}", "sample")
+
+
+@dataclass(frozen=True)
+class ReplayOrSample:
+    """Replays saved fixtures; a request with no fixture is answered and recorded from the samples."""
+    replay: Transport
+    sample: Transport
+
+    def send(self, request: Request) -> Response:
+        resp = self.replay.send(request)
+        return self.sample.send(request) if resp.status == NETWORK_FAILURE else resp
+
+
+def build_plan(transport: Transport, shelter_replay: bool, now: datetime) -> dict:
+    settings = load_settings()
+    profile = build_profile(DEMO_ADDRESS, transport)
+    scan = scan_room(prepare_image(PHOTO.read_bytes()), DEMO_ROOM_NAME, GeminiClient(transport, settings))
+    evac_route = plan_route(profile, transport, now)
+    origin = evac_route.destination if isinstance(evac_route, (WalkingRoute, DirectionOnly)) else (profile.lon, profile.lat)
+    shelters = find_shelters(origin, profile, DEMO_HOUSEHOLD, transport,
+                             lambda p: in_hazard_area(transport, p), now, shelter_replay)
+    plan = Plan(building=profile, household=DEMO_HOUSEHOLD, rooms=[scan], route=evac_route,
+                shelters=shelters, generated_at=now)
+    return {"plan": plan.model_dump(mode="json"), "images": {scan.id: "/demo/living_room.jpg"}}
+
+
+def build_plan_jp(transport: Transport, now: datetime, place: tuple[float, float] = japan.JP_DEMO_HOME) -> dict:
+    """The Kamakura demo household, from whatever answers `transport` gives: samples, or a replayed recording."""
+    region, profile = regions.profile_for_point(*place, transport)
+    assert region.id == "jp"
+    evac = regions.evacuate(profile, JP_DEMO_HOUSEHOLD, transport, transport, now, True)
+    plan = Plan(building=profile, household=JP_DEMO_HOUSEHOLD, rooms=[], route=evac.route, shelters=evac.shelters,
+                generated_at=now)
+    return {"plan": plan.model_dump(mode="json"), "images": {}, "note": JP_NO_ROOM_NOTE,
+            "shelters_error": evac.shelters_error}
+
+
+def write_plan_jp(payload: dict) -> None:
+    PLAN_JP.write_text(json.dumps(payload, indent=1, ensure_ascii=False), encoding="utf-8")
+    plan = payload["plan"]
+    print(f"wrote {PLAN_JP.relative_to(ROOT)}: route {plan['route']['kind'] if plan['route'] else None}, "
+          f"{len(plan['shelters']['matches']) if plan['shelters'] else 0} sites, {plan['building']['provenance']}")
+
+
+def exercise_outside_address(transport: Transport, now: datetime) -> None:
+    """Records the out-of-zone address too, so the offline demo can show the stay-put branch."""
+    profile = build_profile(OUTSIDE_ADDRESS, transport)
+    evac_route = plan_route(profile, transport, now)
+    find_shelters((profile.lon, profile.lat), profile, Household(), transport,
+                  lambda p: in_hazard_area(transport, p), now, True)
+    assert evac_route is not None and evac_route.kind == "not_in_zone"
+
+
+
+def write_gobag(transport: Transport, jpeg: bytes) -> None:
+    check = check_gobag(jpeg, GeminiClient(transport, load_settings()))
+    GOBAG.write_text(json.dumps(check.model_dump(mode="json"), indent=1), encoding="utf-8")
+    print(f"wrote {GOBAG.relative_to(ROOT)}: {check.seen_count} of {check.total} items seen, {check.provenance}")
+    for item in check.items:
+        print(f"  {item.status:<17} {item.label}" + (f"  ({item.note})" if item.note else ""))
+
+
+def write_plan(payload: dict) -> None:
+    if any(note == MASKS_NOT_DECODED for room in payload["plan"]["rooms"] for note in room["notes"]):
+        print("warning: Gemini gave no mask for some objects; those draw as boxes.")
+    PLAN.write_text(json.dumps(payload, indent=1), encoding="utf-8")
+    plan = payload["plan"]
+    print(f"wrote {PLAN.relative_to(ROOT)}: {len(plan['rooms'][0]['classified'])} objects, "
+          f"route {plan['route']['kind']}, {len(plan['shelters']['matches'])} shelters")
+
+
+def main(mode: str) -> None:
+    now = datetime(2026, 11, 4, 17, 0, tzinfo=timezone.utc)
+    if mode == "samples":
+        if FIXTURES.exists():
+            shutil.rmtree(FIXTURES)
+        recorder = RecordingTransport(SampleResponder(), FIXTURES, provenance="sample")
+        build_plan(recorder, True, now)
+        exercise_outside_address(recorder, now)
+    elif mode == "fill-samples":
+        sample = RecordingTransport(SampleResponder(), FIXTURES, provenance="sample")
+        replay = ReplayTransport(FIXTURES)
+        filled = HostSplit(urlsplit(OVERPASS_URL).hostname, replay, ReplayOrSample(replay, sample))
+        transport = HostSplit(FEMA_HOST, sample, filled)
+        build_plan(transport, True, now)
+        exercise_outside_address(transport, now)
+    elif mode == "jp":
+        write_plan_jp(build_plan_jp(japan.SampleTransport(), now))
+        return
+    elif mode == "jp-replay":
+        write_plan_jp(build_plan_jp(ReplayTransport(FIXTURES), now))
+        return
+    elif mode == "gobag-sample":
+        write_gobag(SampleResponder(), prepare_image(PHOTO.read_bytes()))
+        return
+    elif mode != "replay":
+        raise SystemExit("usage: python tools/demo.py samples|replay|fill-samples|gobag-sample|jp")
+    write_plan(build_plan(ReplayTransport(FIXTURES), True, now))
+
+
+if __name__ == "__main__":
+    main(sys.argv[1] if len(sys.argv) > 1 else "replay")
