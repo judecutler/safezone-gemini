@@ -1,0 +1,14 @@
+.git
+.env
+.env.*
+__pycache__
+**/__pycache__
+.venv
+venv
+node_modules
+tests
+tools
+docs
+video
+scratch
+fixtures/demo.recording*
