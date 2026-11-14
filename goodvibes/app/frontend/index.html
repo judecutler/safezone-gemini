@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GoodVibes — autonomous sealed-container inspection</title>
+<style>
+  :root{--bg:#0a0c0f;--panel:#12161b;--line:#222a33;--fg:#e8edf2;--mute:#8793a0;--acc:#ffb347;--acc2:#5ad1ff;--bad:#ff5c5c;--good:#4fd68a}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 ui-sans-serif,system-ui,-apple-system,Segoe UI,Inter,sans-serif}
+  header{display:flex;align-items:center;gap:14px;padding:12px 22px;border-bottom:1px solid var(--line)}
+  header h1{font-size:18px;margin:0}
+  header h1 span{color:var(--acc)}
+  .sub{color:var(--mute);font-size:12px}
+  .right{margin-left:auto;display:flex;gap:8px;align-items:center}
+  button{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:7px 11px;cursor:pointer;font:inherit}
+  button.primary{background:var(--acc);color:#111;border-color:var(--acc);font-weight:600}
+  select,input{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:6px 9px;font:inherit}
+  .tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:12px 22px 0}
+  .tier{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:12px}
+  .tier b{display:block;font-size:11px;letter-spacing:.8px;text-transform:uppercase;color:var(--mute);margin-bottom:3px}
+  .tier.t1 b{color:var(--good)} .tier.t2 b{color:var(--acc)} .tier.t3 b{color:var(--acc2)}
+  main{display:grid;grid-template-columns:1.35fr 1fr;gap:14px;padding:14px 22px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
+  .panel h2{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:var(--mute);display:flex;justify-content:space-between;align-items:center}
+  .counters{display:flex;gap:22px;font-size:13px}
+  .counters b{font-size:20px;display:block;font-weight:700}
+  .lane{position:relative;height:190px;overflow:hidden;border-radius:10px;background:repeating-linear-gradient(90deg,#0d1014 0 38px,#0f1317 38px 40px);border:1px solid var(--line)}
+  .lane:after{content:"";position:absolute;left:0;right:0;bottom:0;height:10px;background:linear-gradient(90deg,#1a2129,#2a333d);}
+  .card{position:absolute;top:18px;width:150px;height:150px;border-radius:10px;background:#161b21;border:1px solid var(--line);padding:8px;transition:left 3.9s linear;cursor:pointer}
+  .card canvas{width:60px;height:60px;border-radius:5px;background:#000;float:left;margin-right:8px}
+  .card .v{font-weight:700;font-size:13px}
+  .card .s{font-size:11px;color:var(--mute)}
+  .card.flag{border-color:var(--bad);box-shadow:0 0 0 1px var(--bad) inset}
+  .card.pass{border-color:#2b4a3a}
+  .card.sel{outline:2px solid var(--acc2)}
+  .tag{display:inline-block;padding:1px 7px;border-radius:999px;font-size:11px;border:1px solid var(--line);margin-top:4px}
+  .tag.pass{color:var(--good);border-color:var(--good)} .tag.flag{color:var(--bad);border-color:var(--bad)} .tag.mute{color:var(--mute)}
+  .rej{display:flex;flex-direction:column;gap:6px;max-height:230px;overflow:auto}
+  .rej .r{display:flex;gap:10px;align-items:center;padding:6px 8px;border:1px solid var(--line);border-radius:8px;cursor:pointer;font-size:12px}
+  .rej .r b{color:var(--bad)}
+  .stage{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  canvas.grid{width:100%;aspect-ratio:1;background:#000;border-radius:8px;border:1px solid var(--line);cursor:crosshair}
+  .photo{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:#000;display:block}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:12.5px}
+  .kv b{color:var(--mute);font-weight:500}
+  .big{font-size:22px;font-weight:700}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th,td{padding:4px 6px;border-bottom:1px solid var(--line);text-align:right} th:first-child,td:first-child{text-align:left}
+  th{color:var(--mute);font-weight:500}
+  svg.spec{width:100%;height:150px;background:#000;border-radius:8px;border:1px solid var(--line)}
+  .chat{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow:auto}
+  .msg{padding:7px 9px;border-radius:8px;background:#0e1216;border:1px solid var(--line);white-space:pre-wrap;font-size:12.5px}
+  .msg.user{border-color:#2d3a48}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .evi{font-size:11.5px;color:var(--mute)}
+  .col{display:flex;flex-direction:column;gap:14px}
+  footer{padding:10px 22px;color:var(--mute);font-size:11px;border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Good<span>Vibes</span></h1>
+  <div class="sub">Autonomous inspection of sealed, opaque containers from laser-speckle surface vibration · Vibration Transformer + Gemini</div>
+  <div class="right">
+    <select id="split"><option value="S1">S1 · unseen excitation</option><option value="S2">S2 · unseen location</option><option value="S3">S3 · random</option></select>
+    <button id="pause">⏸ Pause line</button>
+    <span class="evi" id="status">starting…</span>
+  </div>
+</header>
+<div class="tiers">
+  <div class="tier t1"><b>Proved tonight</b>Hidden contents located through a sealed cardboard wall, non-contact, under an excitation the model never heard (S1).</div>
+  <div class="tier t2"><b>Same measurement, next labels</b>Fill level (Weizmann, ICCV'25) · lyophilized cake state · particulates · low-headspace vials.</div>
+  <div class="tier t3"><b>Frontier</b>Viscosity / protein aggregation in biologics · ripeness & spoilage · equipment health · battery wetting.</div>
+</div>
+<main>
+  <div class="col">
+    <div class="panel">
+      <h2>Line monitor — 10×10 laser grid, auto-inspection every container
+        <span class="counters"><span><b id="cIn">0</b>inspected</span><span><b id="cFlag">0</b>flagged</span><span><b id="cRate">0</b>/min</span><span><b id="cAcc">—</b>within 1 cell*</span></span></h2>
+      <div class="lane" id="lane"></div>
+      <div class="evi" style="margin-top:6px">* checked against recorded ground truth after each inspection — the model never sees it. FLAG = low localization confidence → manual QA.</div>
+    </div>
+    <div class="panel">
+      <h2>Inspector <span id="selTitle" style="text-transform:none;color:var(--fg)">click a container on the line</span></h2>
+      <div class="stage">
+        <div><canvas id="pred" class="grid" width="400" height="400"></canvas><div class="evi" style="margin-top:4px">predicted occupancy on the laser grid · click a laser → spectrum</div></div>
+        <div><img id="photo" class="photo" alt=""><canvas id="truth" class="grid" width="400" height="400" style="display:none"></canvas>
+          <div class="row" style="margin-top:4px;justify-content:space-between"><span class="evi">ground truth (hidden from model)</span><button id="reveal">Reveal truth</button></div></div>
+      </div>
+      <div class="row" style="margin-top:10px;gap:22px">
+        <div><div class="evi">Located at (x, y)</div><div class="big" id="pos">—</div></div>
+        <div><div class="evi">Confidence</div><div class="big" id="conf">—</div></div>
+        <div><div class="evi">Disposition</div><div class="big" id="disp">—</div></div>
+        <div><div class="evi">Gemini self-audit</div><div id="audit" class="tag mute">—</div></div>
+        <div><div class="evi">Gemini few-shot</div><div id="fewshot" class="tag mute">—</div></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Point spectrum <span id="specTitle" style="text-transform:none;color:var(--fg)"></span></h2>
+      <svg id="spec" class="spec" viewBox="0 0 600 150" preserveAspectRatio="none"></svg>
+      <div class="evi">amber = this container · grey = mean reference · 50–1000 Hz</div>
+    </div>
+    <div class="panel">
+      <h2>Scoreboard — held out by physics</h2>
+      <table id="metrics"><thead><tr><th>model</th><th>split</th><th>pos MAE (cells)</th><th>within 1 cell</th><th>exact cell</th><th>heatmap IoU</th></tr></thead><tbody></tbody></table>
+    </div>
+  </div>
+  <div class="col">
+    <div class="panel">
+      <h2>Reject queue → QA</h2>
+      <div id="rej" class="rej"><div class="evi">no flags yet</div></div>
+    </div>
+    <div class="panel">
+      <h2>Gemini inspection report</h2>
+      <div id="report" class="evi">Select a container.</div>
+    </div>
+    <div class="panel">
+      <h2>Ask the inspector</h2>
+      <div id="chat" class="chat"></div>
+      <div class="row" style="margin-top:8px"><input id="q" style="flex:1" placeholder="Why those frequencies? What would a liquid look like?"><button id="send">Send</button></div>
+    </div>
+    <div class="panel">
+      <h2>Vibration signature (what Gemini sees)</h2>
+      <img id="sig" style="width:100%;border-radius:8px;border:1px solid var(--line)" alt="">
+    </div>
+  </div>
+</main>
+<footer>Data: Weizmann <code>eturok-weizmann/laser-vibrations</code> (551 sealed boxes, 10×10 laser grid) · Method after Kichler, Bagon, Sheinin (ICCV 2025) · Models: Vibration Transformer (ours), gemini-3.8-flash, gemini-embedding-2 · Industrial / pharmaceutical inspection only.</footer>
+<script>
+const $=s=>document.querySelector(s);
+const api=(p,o)=>fetch(p,o).then(r=>r.json());
+const post=(p,b)=>api(p,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(b)});
+let FLAG_T=0.45;                       // set per split from the server (lowest ~15% confidence → manual QA)
+let queue=[], nx=11, ny=12, paused=false, cur=null, curPred=null, history=[], revealed=false, truth=null;
+let stats={n:0,flag:0,ok:0,t0:Date.now()}; const results={};
+
+function drawGrid(canvas, grid, opts={}){
+  const ctx=canvas.getContext('2d'), n=10, s=canvas.width/n;
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  for(let r=0;r<n;r++)for(let c=0;c<n;c++){
+    const v=grid?Math.max(0,Math.min(1,grid[r][c])):0;
+    ctx.fillStyle=opts.truth?`rgba(90,209,255,${0.12+0.88*v})`:`rgba(255,${Math.round(179-120*v)},${Math.round(71*(1-v))},${0.10+0.9*v})`;
+    ctx.fillRect(c*s+1.5,r*s+1.5,s-3,s-3);
+    if(canvas.width>200){ctx.fillStyle='rgba(255,255,255,.5)';ctx.beginPath();ctx.arc(c*s+s/2,r*s+s/2,2,0,6.283);ctx.fill()}
+  }
+  if(opts.sel!=null){const r=Math.floor(opts.sel/n),c=opts.sel%n;ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.strokeRect(c*s+1,r*s+1,s-2,s-2)}
+  if(opts.mark){const [x,y]=opts.mark;const px=(x/(nx-1))*(canvas.width-s)+s/2,py=(y/(ny-1))*(canvas.width-s)+s/2;ctx.strokeStyle=opts.truth?'#5ad1ff':'#fff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(px,py,s*0.45,0,6.283);ctx.stroke()}
+}
+function tag(el,cls,txt){el.className='tag '+cls;el.textContent=txt}
+
+async function loadStream(){
+  const s=await api(`/api/stream?split=${$('#split').value}`); queue=s.items; nx=s.nx; ny=s.ny; FLAG_T=s.flag_threshold??FLAG_T;
+  $('#status').textContent=`${queue.length} held-out containers queued (${s.split})`;
+}
+async function nextContainer(){
+  if(paused||!queue.length) return;
+  const item=queue.shift(); queue.push(item);            // loop forever
+  const out=await post('/api/infer',{sample_id:item.sample_id});
+  const p=out.pred; const empty=p.presence_prob<0.5; const flagged=empty||p.confidence<FLAG_T;
+  results[item.sample_id]={item,out,flagged,empty};
+  stats.n++; if(flagged) stats.flag++;
+  // silent truth check for the counter only
+  api(`/api/truth/${item.sample_id}`).then(t=>{results[item.sample_id].truth=t;if(t.presence){const ok=Math.abs(p.pos_xy[0]-t.x)<=1&&Math.abs(p.pos_xy[1]-t.y)<=1;stats.ok+=ok?1:0;$('#cAcc').textContent=Math.round(100*stats.ok/stats.n)+'%'}});
+  $('#cIn').textContent=stats.n; $('#cFlag').textContent=stats.flag;
+  $('#cRate').textContent=(stats.n/((Date.now()-stats.t0)/60000)).toFixed(0);
+  spawnCard(item,p,flagged);
+  post('/api/disposition',{sample_id:item.sample_id,disposition:flagged?'FLAG':'PASS'});
+  if(flagged){ if($('#rej .evi')) $('#rej').innerHTML='';
+    $('#rej').insertAdjacentHTML('afterbegin',`<div class="r" data-id="${item.sample_id}"><b>FLAG</b> #${item.sample_id} · conf ${(p.confidence*100).toFixed(0)}% · est (${p.pos_xy[0].toFixed(1)}, ${p.pos_xy[1].toFixed(1)}) · spk ${item.speakers}</div>`);
+    $('#rej .r').onclick=()=>select(item.sample_id); }
+  if(cur===null) select(item.sample_id);
+}
+function spawnCard(item,p,flagged){
+  const lane=$('#lane'); const el=document.createElement('div');
+  el.className='card '+(flagged?'flag':'pass'); el.dataset.id=item.sample_id; el.style.left=(lane.clientWidth+10)+'px';
+  el.innerHTML=`<canvas width="60" height="60"></canvas><div class="v">#${item.sample_id}</div><div class="s">${p.presence_prob<0.5?'no contents detected':`(${p.pos_xy[0].toFixed(1)}, ${p.pos_xy[1].toFixed(1)}) · ${(p.confidence*100).toFixed(0)}%`}</div><span class="tag ${flagged?'flag':'pass'}">${p.presence_prob<0.5?'EMPTY → QA':flagged?'FLAG → QA':'PASS'}</span>`;
+  lane.appendChild(el); drawGrid(el.querySelector('canvas'),p.occ_grid);
+  el.onclick=()=>select(item.sample_id);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{el.style.left='-170px'}));
+  setTimeout(()=>el.remove(),4200);
+}
+async function select(id){
+  cur=id; const R=results[id]; curPred=R.out.pred; history=[]; revealed=false; truth=null; $('#chat').innerHTML='';
+  document.querySelectorAll('.card').forEach(c=>c.classList.toggle('sel',+c.dataset.id===id));
+  $('#selTitle').textContent=`container #${id} · speaker ${R.item.speakers}`;
+  drawGrid($('#pred'),curPred.occ_grid,{mark:curPred.pos_xy});
+  $('#photo').src=''; $('#photo').style.display='none'; $('#truth').style.display='block'; drawGrid($('#truth'),null,{truth:true});
+  $('#reveal').textContent='Reveal truth'; $('#reveal').style.color='';
+  $('#pos').textContent=R.empty?'EMPTY':`${curPred.pos_xy[0].toFixed(1)}, ${curPred.pos_xy[1].toFixed(1)}`;
+  $('#conf').textContent=(curPred.confidence*100).toFixed(0)+'%';
+  $('#disp').textContent=R.empty?'EMPTY':R.flagged?'FLAG':'PASS'; $('#disp').style.color=R.flagged?'var(--bad)':'var(--good)';
+  $('#sig').src=`/api/signature/${id}.png`;
+  const fs=R.out.gemini_fewshot; if(fs&&fs.available) tag($('#fewshot'),'mute',`(${fs.x}, ${fs.y}) · ${(fs.confidence*100).toFixed(0)}%`); else tag($('#fewshot'),'mute','n/a');
+  tag($('#audit'),'mute','…');
+  showSpectrum(id, R.out.compare.strongest[0]?.laser_idx ?? 0);
+  $('#report').textContent='Gemini is writing the report…';
+  post('/api/report',{sample_id:id}).then(r=>{if(cur===id)renderReport(r)});
+  post('/api/audit',{sample_id:id}).then(a=>{if(cur!==id)return; if(!a.available) return tag($('#audit'),'mute','n/a'); tag($('#audit'),a.agree?'pass':'flag',a.agree?'agrees':'disagrees'); $('#audit').title=a.note||''});
+}
+function renderReport(r){
+  if(!r.available){$('#report').innerHTML=`<span class="evi">Gemini unavailable: ${r.reason}</span>`;return}
+  const p=r.report;
+  $('#report').innerHTML=`<div class="kv">
+    <b>verdict</b><span><strong>${p.verdict}</strong> · ${p.location_cell} · conf ${(p.confidence*100).toFixed(0)}%</span>
+    <b>evidence</b><span>${p.evidence.map(e=>`laser ${e.laser_idx} · ${e.band_hz} Hz · ${e.delta_db>0?'+':''}${e.delta_db} dB${e.note?' — '+e.note:''}`).join('<br>')}</span>
+    <b>action</b><span>${p.recommended_action}</span>
+    <b>caveats</b><span>${p.caveats.join('<br>')}</span>
+    <b>model</b><span class="evi">${r.model} · ${r.latency_s}s</span></div>`;
+}
+async function showSpectrum(id, idx){
+  const d=await api(`/api/spectrum/${id}/${idx}`);
+  $('#specTitle').textContent=`— laser ${idx} (row ${d.row}, col ${d.col})`;
+  drawGrid($('#pred'),curPred.occ_grid,{sel:idx,mark:curPred.pos_xy});
+  const all=[...d.x,...d.ref_x]; const lo=Math.min(...all), hi=Math.max(...all);
+  const path=ys=>ys.map((v,i)=>`${i?'L':'M'}${(i/(ys.length-1))*600},${145-((v-lo)/(hi-lo+1e-9))*135}`).join(' ');
+  $('#spec').innerHTML=`<path d="${path(d.ref_x)}" fill="none" stroke="#5c6672" stroke-width="1.2"/><path d="${path(d.x)}" fill="none" stroke="#ffb347" stroke-width="1.6"/>`;
+}
+$('#pred').addEventListener('click',e=>{if(cur===null)return;const r=$('#pred').getBoundingClientRect();const c=Math.floor((e.clientX-r.left)/r.width*10),row=Math.floor((e.clientY-r.top)/r.height*10);showSpectrum(cur,row*10+c)});
+$('#reveal').onclick=async()=>{if(cur===null)return;truth=await api(`/api/truth/${cur}`);revealed=true;
+  if(truth.has_overhead){$('#photo').src=`/api/overhead/${cur}`;$('#photo').style.display='block';$('#truth').style.display='none'}
+  else{drawGrid($('#truth'),truth.occ_grid,{truth:true,mark:[truth.x,truth.y]})}
+  const ok=truth.presence&&Math.abs(curPred.pos_xy[0]-truth.x)<=1&&Math.abs(curPred.pos_xy[1]-truth.y)<=1;
+  $('#reveal').textContent=ok?`✓ truth (${truth.x}, ${truth.y})`:`✗ truth (${truth.x}, ${truth.y})`;$('#reveal').style.color=ok?'var(--good)':'var(--bad)'};
+$('#pause').onclick=()=>{paused=!paused;$('#pause').textContent=paused?'▶ Resume line':'⏸ Pause line'};
+$('#split').onchange=async()=>{await loadStream()};
+$('#send').onclick=async()=>{const q=$('#q').value.trim();if(!q||cur===null)return;$('#q').value='';
+  $('#chat').insertAdjacentHTML('beforeend',`<div class="msg user">${q}</div>`);
+  const r=await post('/api/chat',{sample_id:cur,message:q,history,allow_truth:revealed});
+  const t=r.available?r.text:`Gemini unavailable: ${r.reason}`; history.push({role:'user',text:q},{role:'model',text:t});
+  $('#chat').insertAdjacentHTML('beforeend',`<div class="msg">${t}</div>`);$('#chat').scrollTop=1e9};
+$('#q').addEventListener('keydown',e=>{if(e.key==='Enter')$('#send').click()});
+async function loadMetrics(){
+  const m=await api('/api/metrics'); const tb=$('#metrics tbody'); tb.innerHTML='';
+  const f=v=>v==null?'—':(typeof v==='number'?(v<=1?(v*100).toFixed(0)+'%':v.toFixed(2)):v);
+  const g=v=>v==null?'—':v.toFixed(2);
+  for(const split of ['S1','S2','S3']){ if(!m[split]) continue;
+    for(const [name,key] of [['Ridge baseline (band energy)','baseline_lr'],['Vibration Transformer','vibration_transformer']]){
+      const r=m[split][key]||{}; tb.insertAdjacentHTML('beforeend',`<tr><td>${name}</td><td>${split}</td><td>${g(r.pos_mae)}</td><td>${f(r.within1_acc)}</td><td>${f(r.exact_acc)}</td><td>${f(r.occ_iou)}</td></tr>`)}
+    const gm=(m.gemini||{})[split]||{};
+    for(const [name,key] of [['Gemini few-shot (no training)','fewshot'],['Gemini Embedding 2 + kNN','knn']]){
+      const r=gm[key]; if(r&&r.available) tb.insertAdjacentHTML('beforeend',`<tr><td>${name}</td><td>${split}</td><td>${g(r.pos_mae)}</td><td>${f(r.within1_acc)}</td><td>${f(r.exact_acc)}</td><td>—</td></tr>`)}
+  }
+}
+(async()=>{await loadStream();await loadMetrics();drawGrid($('#pred'),null);drawGrid($('#truth'),null,{truth:true});nextContainer();setInterval(nextContainer,4000);})();
+</script>
+</body>
+</html>

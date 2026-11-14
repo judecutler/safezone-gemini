@@ -8,6 +8,10 @@ Prepare once for a coastal earthquake. When it comes, the phone talks you throug
 
 Built for the Google DeepMind × Berkeley Hackathon (Antigravity CLI track). This repo holds the work done in the 24-hour window: the entire AI layer was rebuilt on Gemini and the app was moved to Cloud Run, with every commit made through the Antigravity CLI. It builds on SafeZone, my earlier Meta-hackathon app, whose AI layer ran on Gemini and Gemini. See `docs/GOOGLE_TOOLS.md` for every Google product used and `AGENTS.md` for the architecture.
 
+## Two ideas in one night
+
+The hackathon window started with a different idea: **GoodVibes**, non-contact inspection of sealed containers with laser speckle vibrometry and a Vibration Transformer, with Gemini as inspector and agent. It is complete and runs; it lives in [`goodvibes/`](goodvibes/) with its own README and `goodvibes/PRIOR_IDEA.md` explains why we pivoted at 07:40 to the app you can try on your own room.
+
 ## What changed with Gemini
 
 | Before (Meta) | Now (Gemini 3.8 Flash) |

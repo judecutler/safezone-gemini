@@ -1,0 +1,11 @@
+numpy>=1.26
+scipy>=1.11
+scikit-learn>=1.4
+torch>=2.2
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9
+google-genai>=1.0
+pillow>=10
+matplotlib>=3.8
+huggingface_hub>=0.24

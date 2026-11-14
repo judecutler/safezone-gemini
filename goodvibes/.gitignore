@@ -1,0 +1,13 @@
+data/
+_ref/
+.venv/
+__pycache__/
+*.pyc
+.env
+results/*.pt
+results/features*.npz
+results/preds/
+results/synth/
+results/*.log
+results/batch_log.csv
+download.log
