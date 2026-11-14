@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+__pycache__/
+*.pyc
+.pytest_cache/
+.cache/
+node_modules/
+/scratch/
+*.pem
+*.key
+.venv/
+venv/
+.DS_Store
+fixtures/demo.recording*/
+_staging/

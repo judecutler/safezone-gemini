@@ -1,0 +1,4 @@
+Read AGENTS.md. Slice 3: the room scan on Gemini. One detection call replaces 13 SAM calls; masks become outlines in `room/segment.py`; `room/classify.py` reasons under a JSON schema; `room/score.py` and `gobag.py` keep the code guards.
+Run `python -m pytest -q tests/test_room_segment.py tests/test_room_classify.py tests/test_room_score.py tests/test_gobag.py tests/test_room_pipeline.py` (expect all green), then `git add`:
+  safezone/room/ safezone/gobag.py run.py tests/__init__.py tests/asgi.py tests/test_foundation.py tests/test_room_segment.py tests/test_room_classify.py tests/test_room_score.py tests/test_gobag.py tests/test_room_pipeline.py tests/test_adversarial_safety.py
+Commit: "Room scan and go-bag check on Gemini: one detection call, masks to outlines, schema-constrained reasoning". Report the hash.
