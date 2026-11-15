@@ -1,4 +1,4 @@
-# SafeZone (Gemini)
+# SafeZone (Gemini) / GoodVibes
 
 Sorry, that it isn't deloyed via Google cloud, it crashed last minute so I had to revive an old vercel deployment. 
 
