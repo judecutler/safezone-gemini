@@ -1,6 +1,7 @@
 # SafeZone (Gemini)
 
-Prepare once for a coastal earthquake. When it comes, the phone talks you through it. Google Gemini reads your home.
+Sorry, that it isn't deloyed via Google cloud, it crashed last minute so I had to revive an old vercel deployment. 
+
 
 ![SafeZone: a coastal neighborhood map with a walking route from home to high ground](web/og.png)
 
