@@ -5,7 +5,7 @@
 
  **Repo:** https://github.com/judecutler/safezone-gemini
 
-Built for the Google DeepMind × Berkeley Hackathon (Antigravity CLI track). This repo holds the work done in the 24-hour window: the entire AI layer was rebuilt on Gemini and the app was moved to Cloud Run, with every commit made through the Antigravity CLI. It builds on SafeZone, my earlier Meta-hackathon app, whose AI layer ran on SAM and Muse. See `docs/GOOGLE_TOOLS.md` for every Google product used and `AGENTS.md` for the architecture.
+Placed 1st at the Google DeepMind × Berkeley Hackathon (Antigravity CLI track). This repo holds the work done in the 24-hour window: the entire AI layer was rebuilt on Gemini and the app was moved to Cloud Run, with every commit made through the Antigravity CLI. It builds on SafeZone, my earlier Meta-hackathon app, whose AI layer ran on SAM and Muse. See `docs/GOOGLE_TOOLS.md` for every Google product used and `AGENTS.md` for the architecture.
 
 ## Two ideas in one night
 
