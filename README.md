@@ -1,13 +1,11 @@
 # SafeZone (Gemini) / GoodVibes
 
-Sorry, that it isn't deloyed via Google cloud, it crashed last minute so I had to revive an old vercel deployment. 
-
 
 ![SafeZone: a coastal neighborhood map with a walking route from home to high ground](web/og.png)
 
-**Live app:** _Cloud Run URL goes here after `scripts/deploy.sh`_ · **Repo:** https://github.com/judecutler/safezone-gemini · **Prior work:** https://github.com/judecutler/safezone
+ **Repo:** https://github.com/judecutler/safezone-gemini
 
-Built for the Google DeepMind × Berkeley Hackathon (Antigravity CLI track). This repo holds the work done in the 24-hour window: the entire AI layer was rebuilt on Gemini and the app was moved to Cloud Run, with every commit made through the Antigravity CLI. It builds on SafeZone, my earlier Meta-hackathon app, whose AI layer ran on Gemini and Gemini. See `docs/GOOGLE_TOOLS.md` for every Google product used and `AGENTS.md` for the architecture.
+Built for the Google DeepMind × Berkeley Hackathon (Antigravity CLI track). This repo holds the work done in the 24-hour window: the entire AI layer was rebuilt on Gemini and the app was moved to Cloud Run, with every commit made through the Antigravity CLI. It builds on SafeZone, my earlier Meta-hackathon app, whose AI layer ran on SAM and Muse. See `docs/GOOGLE_TOOLS.md` for every Google product used and `AGENTS.md` for the architecture.
 
 ## Two ideas in one night
 
